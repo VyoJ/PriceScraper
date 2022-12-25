@@ -1,0 +1,7 @@
+1. https://github.com/bhattbhavesh91/flipkart-price-tracker/blob/main/price-tracker.py
+2. https://www.blog.datahut.co/post/build-an-amazon-price-tracker-in-python
+3. https://towardsdatascience.com/scraping-multiple-amazon-stores-with-python-5eab811453a8
+4. https://github.com/KelvinLam05/price_scraping/blob/main/price_scraping.ipynb
+5. https://www.geeksforgeeks.org/scraping-amazon-product-information-using-beautiful-soup/
+6. https://medium.com/geekculture/scrape-prices-from-website-with-python-526edd92ba3d
+7. https://www.geeksforgeeks.org/implementing-web-scraping-python-beautiful-soup/
