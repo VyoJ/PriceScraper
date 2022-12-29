@@ -2,6 +2,10 @@ import requests
 from bs4 import BeautifulSoup
 from lxml import etree as et
 import re
+import matplotlib.pyplot as plt
+import numpy as np
+import schedule as sch
+import time as tm
 
 header = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36",
@@ -44,6 +48,19 @@ for product_url in amazon_urls:
     price = soup.find("div",{"class":"_30jeq3 _16Jk6d"}).get_text()
     prince_int = int(''.join(re.findall(r'\d+', price)))
     print(product_name + " is at " + price)
+    
+xpoints = []
+ypoints = []
+def update_prices():
+    xpoints += 1
+    ypoints += int(''.join(re.findall(r'\d+', soup.find("div",{"class":"_30jeq3 _16Jk6d"}).get_text())))
+
+sch.every(1439).minutes.do(update_prices)
+while True:
+    sch.run_pending()
+    time.sleep(1)
+
+
 
 
 
