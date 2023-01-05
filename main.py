@@ -77,7 +77,8 @@ curs.execute("CREATE DATABASE IF NOT EXISTS PRICE_TRACKER;")
 curs.execute("USE PRICE_TRACKER;")
 curs.execute("SHOW TABLES;")
 data = curs.fetchall()
-if data and 'products' not in data[0][0]:
+print(data)
+if not(data) or 'products' not in data[0][0]:
     curs.execute('''CREATE TABLE PRODUCTS(
     Timestamp DATETIME,
     Website CHAR(10),
@@ -85,8 +86,7 @@ if data and 'products' not in data[0][0]:
     Price INT);''')
 
 amazon_urls = ['https://www.amazon.in/Apple-iPhone-128GB-Product-RED/dp/B0BDJVSDMY/ref=sr_1_3?keywords=iphone%2B14&qid=1671965973&sprefix=iph%2Caps%2C303&sr=8-3&th=1',
-"https://www.amazon.in/Xbox-Series-X/dp/B08J7QX1N1",
-"https://www.amazon.in/ASUS-ROG-Zephyrus-35-56-GA402RJZ-L4135WS/dp/B0B5S3QXK7"]
+"https://www.amazon.in/Xbox-Series-X/dp/B08J7QX1N1"]
 
 flipkart_urls = ["https://www.flipkart.com/apple-iphone-14-midnight-128-gb/p/itm9e6293c322a84?pid=MOBGHWFHECFVMDCX&lid=LSTMOBGHWFHECFVMDCXBOYSND&marketplace=FLIPKART&q=iphone+14&store=tyy%2F4io&srno=s_1_1&otracker=search&otracker1=search&fm=organic&iid=1c136774-01a9-46d3-a2e3-788f967e8061.MOBGHWFHECFVMDCX.SEARCH&ppt=hp&ppn=homepage&ssid=myp3m3u1w6cdawhs1671967395943&qH=860f3715b8db08cd",
 "https://www.flipkart.com/apple-iphone-13-green-128-gb/p/itm18a55937b2607?pid=MOBGC9VGSU9DWGJZ&lid=LSTMOBGC9VGSU9DWGJZTOZYKQ&marketplace=FLIPKART&q=iphone+13&store=tyy%2F4io&srno=s_1_1&otracker=search&otracker1=search&fm=Search&iid=3a1a1c47-12b2-4664-abd3-979acf56983e.MOBGC9VGSU9DWGJZ.SEARCH&ppt=sp&ppn=sp&ssid=58bph5yzb1r1mubk1671967811312&qH=c68a3b83214bb235"]
@@ -101,9 +101,11 @@ for product_url in amazon_urls:
     main_dom = et.HTML(str(soup))
     
     price = get_amazon_price(main_dom)
+    timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
     product_name = get_amazon_name(main_dom).strip()
     print(product_name, price)
-    curs.execute("INSERT INTO Products VALUES ({}, {}, {}, {})".format(dt.time(), "Amazon", product_name, price))
+    curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {})".format(timestamp, "Amazon", product_name, price))
+    mydb.commit()
 
 for product_url in flipkart_urls:
     response = requests.get(product_url, headers=header)
@@ -112,9 +114,11 @@ for product_url in flipkart_urls:
 
     product_name = soup.find("span",{"class":"B_NuCI"}).get_text()
     price = soup.find("div",{"class":"_30jeq3 _16Jk6d"}).get_text()
+    timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
     price_int = int(''.join(re.findall(r'\d+', price)))
     print(product_name + " is at " + price)
-    curs.execute("INSERT INTO Products VALUES ({}, {}, {}, {})".format(dt.time(), "Flipkart", product_name, price_int))
+    curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {})".format(timestamp, "Flipkart", product_name, price_int))
+    mydb.commit()
 
 # # Scheduling the program to run once every 12 hours:
 # sch.every(12).hours.do(lambda: print("Test"))
