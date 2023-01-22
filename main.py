@@ -6,6 +6,7 @@ import mysql.connector as sqltor
 from datetime import datetime as dt
 from tkinter import *
 from tkinter import messagebox
+from tkinter import ttk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 
@@ -89,7 +90,25 @@ def onClickURL():
 def onClickVary():
     w2 = Tk()
     w2.title('Price Variations')
-    w2.geometry('620x480') 
+    w2.geometry("1280x720")
+
+    style = ttk.Style()
+    style.theme_use('alt')
+
+    # Add a Treeview widget
+    tree = ttk.Treeview(w2, column=("Timestamp", "Product Name", "Price"), show='headings', height=15)
+    tree.column("# 1", anchor=CENTER)
+    tree.heading("# 1", text="Timestamp")
+    tree.column("# 2", anchor=CENTER)
+    tree.heading("# 2", text="Product Name")
+    tree.column("# 3", anchor=CENTER)
+    tree.heading("# 3", text="Price")
+    curs.execute("SELECT Timestamp, Name, Price FROM Products;")
+    data = curs.fetchall()
+    for i in data:
+        tree.insert('', 'end', text = "1", values = i)
+
+    tree.place(relx = 0.1, rely = 0.1)
     w2.mainloop()
 
 
