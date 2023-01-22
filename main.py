@@ -23,7 +23,7 @@ def onClickURL():
     def onClickAdd():
         def AddURL():
             URL = entrybox1.get()
-            entrybox1.setvar("")
+            entrybox1.setvar("Enter URL")
             if "amazon" in URL:
                 uid = gen_UID("Amazon")
             elif "flipkart" in URL:
@@ -56,7 +56,7 @@ def onClickURL():
     def onClickDel():
         def DelURL():
             URL = entrybox2.get()
-            entrybox2.setvar("")
+            entrybox2.setvar("Enter URL")
             curs.execute("SELECT URL FROM URLS WHERE URL = '{}';".format(URL))
             urls = list(map(lambda x: x[0], curs.fetchall()))
             if URL in urls:
@@ -88,31 +88,51 @@ def onClickURL():
 
 
 def onClickVary():
+    '''
+    Function to show the Price variations of each product as a table.
+    '''
+
     w2 = Tk()
     w2.title('Price Variations')
-    w2.geometry("1280x720")
+    w2.geometry("1280x500")
 
     style = ttk.Style()
     style.theme_use('alt')
 
-    # Add a Treeview widget
+    menu = StringVar()
+    menu.set("Select Any Product")
+    curs.execute("SELECT DISTINCT Name FROM Products;")
+    data = curs.fetchall()
+    options = list(map(lambda x: x[0], data))
+    drop = OptionMenu(w2, menu, *options, command = lambda x: showTable(w2, menu.get()))
+    drop.place(relx = 0.4, rely = 0.05)
+
+    w2.mainloop()
+
+def showTable(w2, name):
+    '''
+    Function to display the MySQL table storing products' names and prices along with the timestamp. 
+    '''
+
     tree = ttk.Treeview(w2, column=("Timestamp", "Product Name", "Price"), show='headings', height=15)
-    tree.column("# 1", anchor=CENTER)
-    tree.heading("# 1", text="Timestamp")
-    tree.column("# 2", anchor=CENTER)
-    tree.heading("# 2", text="Product Name")
-    tree.column("# 3", anchor=CENTER)
-    tree.heading("# 3", text="Price")
-    curs.execute("SELECT Timestamp, Name, Price FROM Products;")
+    tree.column("#1", anchor=CENTER, width = 300)
+    tree.heading("#1", text="Timestamp")
+    tree.column("#2", anchor=CENTER, width = 500)
+    tree.heading("#2", text="Product Name")
+    tree.column("#3", anchor=CENTER, width = 400)
+    tree.heading("#3", text="Price")
+    curs.execute("SELECT Timestamp, Name, Price FROM Products WHERE Name = '{}' ORDER BY Timestamp;".format(name))
     data = curs.fetchall()
     for i in data:
         tree.insert('', 'end', text = "1", values = i)
 
-    tree.place(relx = 0.1, rely = 0.1)
-    w2.mainloop()
-
+    tree.place(relx = 0.03, rely = 0.2)
 
 def gen_UID(website):
+    '''
+    Function to generate unique identification codes for all URLs being added to the table.
+    '''
+
     curs.execute("SELECT DISTINCT UID FROM URLS WHERE UID REGEXP '[{}]$' ORDER BY UID DESC LIMIT 1;".format(website[0]))
     l_uid = curs.fetchall()
     if not(l_uid):
@@ -173,7 +193,25 @@ def get_flipkart_details(product_url):
     mydb.commit()
 
 
+# def mysqllogin(f):
+#     sqllogin = Tk()
+#     sqllogin.geometry("400x300")
+#     username = StringVar()
+#     username.set("Enter MySQL username")
+#     pwd = StringVar("Enter MySQL password")
+#     userentry = Entry(sqllogin, username)
+#     userentry.place(relx = 0.4, rely = 0.2)
+#     passentry = Entry(sqllogin, pwd)
+#     passentry.place(relx = 0.4, rely = 0.5)
+#     submit_btn = Button(sqllogin, text = "Submit", font = ("Arial 14"), relief = RIDGE, bd = 3, command = f.writelines([userentry.get(), passentry.get()]))
+#     submit_btn.place(relx = 0.42, rely = 0.8)
+
+
 def GUI():
+    '''
+    Function to start the GUI of the program. 
+    '''
+
     root = Tk()
     root.title('Home Page')
     root.geometry('1280x720')
@@ -201,6 +239,10 @@ def GUI():
 
 
 #main
+# f = open("mysql_auth.txt", "a+")
+# data = f.read()
+# if not(data):
+#     mysqllogin(f)
 mydb = sqltor.connect(host="localhost", user="root", passwd="Root@604")
 curs = mydb.cursor()
 if mydb.is_connected():
