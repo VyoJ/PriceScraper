@@ -3,12 +3,87 @@ from bs4 import BeautifulSoup
 from lxml import etree as et
 import re
 import mysql.connector as sqltor
-import matplotlib.pyplot as plt
-import numpy as np
 from datetime import datetime as dt
+from tkinter import *
+from tkinter import messagebox
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
+
+def onClickURL():
+    '''
+    Function to implement adding or removing URLs from the URL watchlists.
+    '''
+
+    w1 = Tk()
+    w1.title('Edit URLs')
+    w1.geometry('620x480')
+
+    def onClickAdd():
+        def AddURL():
+            URL = entrybox1.get()
+            entrybox1.setvar("")
+            if "amazon" in URL:
+                uid = gen_UID("Amazon")
+            elif "flipkart" in URL:
+                uid = gen_UID("Flipkart")
+            else:
+                messagebox.showwarning("Warning", "Not an Amazon or Flipkart URL! Try again.")
+                return
+            curs.execute("INSERT INTO URLS VALUES('{}', '{}');".format(uid, URL))
+            mydb.commit()
+            curs.execute("SELECT URL FROM URLS WHERE URL = '{}';".format(URL))
+            if URL in curs.fetchall()[0][0]:
+                messagebox.showinfo("Success", "URL added to database successfully!")
+            else:
+                messagebox.showwarning("Warning", "Something went wrong! Try again later.")
+            w2.destroy()
+
+        w2 = Tk()
+        w2.title("Add URLs")
+        w2.geometry("620x200")
+        entrybox1 = Entry(w2)
+        entrybox1.pack(side = LEFT)
+        submit_btn = Button(w2, text = "Submit", command = AddURL)
+        submit_btn.pack(side = RIGHT)
+        w2.mainloop() 
+
+    def onClickDel():
+        def DelURL():
+            URL = entrybox2.get()
+            entrybox2.setvar("")
+            curs.execute("SELECT URL FROM URLS WHERE URL = '{}';".format(URL))
+            if URL in curs.fetchall()[0]:
+                curs.execute("DELETE FROM URLS WHERE URL = '{}';".format(URL))
+                mydb.commit()
+                curs.execute("SELECT URL FROM URLS WHERE URL = '{}';".format(URL))
+                messagebox.showinfo("Success", "URL removed from database successfully!")
+            else:
+                messagebox.showwarning("Warning", "This URL doesn't exist in the table.")
+            w2.destroy()
+
+        w2 = Tk()
+        w2.title("Delete URLs")
+        w2.geometry("620x200")
+        entrybox2 = Entry(w2)
+        entrybox2.pack()
+        submit_btn = Button(w2, text = "Submit", command = DelURL)
+        submit_btn.pack()
+        w2.mainloop()
+
+    bt1 = Button(w1, text="Add URLs", command=onClickAdd)
+    bt1.pack()
+    bt2 = Button(w1, text='Delete URLs', command=onClickDel)
+    bt2.pack()
+    w1.mainloop()
+
+def onClickVary():
+    w2 = Tk()
+    w2.title('Price Variations')
+    w2.geometry('620x480') 
+    w2.mainloop()
 
 def gen_UID(website):
-    curs.execute("SELECT DISTINCT UID FROM PRODUCTS WHERE UID REGEXP '[{}]$' ORDER BY UID DESC LIMIT 1;".format(website[0]))
+    curs.execute("SELECT DISTINCT UID FROM URLS WHERE UID REGEXP '[{}]$' ORDER BY UID DESC LIMIT 1;".format(website[0]))
     l_uid = curs.fetchall()
     if not(l_uid):
         uid = 'P001'+website[0]
@@ -56,27 +131,19 @@ def get_flipkart_details(product_url):
     price_int = int(''.join(re.findall(r'\d+', price)))
     print(product_name + " is at " + price)
     uid = gen_UID("Flipkart")
-    curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {})".format(timestamp, uid, product_name, price_int))
+    curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {});".format(timestamp, uid, product_name, price_int))
     mydb.commit()
 
-def update_urls():
-    '''
-    Function to implement adding or removing URLs from the URL watchlists.
-    Will be updated to work through Tkinter.
-    '''
-
-    print('''Do you want to enter another URL:
-    1. Amazon
-    2. Flipkart\n''')
-    choice = int(input("Enter number corresponding to choice: "))
-    if choice in (1,2):
-        url = input("Enter URL:")
-        if choice == 1:
-            amazon_urls.append(url)
-        elif choice == 2:
-            flipkart_urls.append(url)
-
 #main
+mydb = sqltor.connect(host="localhost", user="root", passwd="Root@604")
+curs = mydb.cursor()
+if mydb.is_connected():
+    print("Connected")
+
+root = Tk()
+root.title('Home Page')
+root.geometry('1280x720')
+
 header = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36",
     'Accept': '*/*', 
@@ -84,26 +151,21 @@ header = {
     'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
 }
 
-mydb = sqltor.connect(host="localhost", user="root", passwd="Root@604")
-curs = mydb.cursor()
-if mydb.is_connected():
-    print("Connected")
-
 curs.execute("CREATE DATABASE IF NOT EXISTS PRICETRACKER;")
 curs.execute("USE PRICETRACKER;")
 curs.execute("SHOW TABLES;")
 data = curs.fetchall()
 print(data)
 
-if not(data) or 'urls' not in data[1][0]:
+if not(data) or not(data[1][0]):
     curs.execute('''CREATE TABLE URLS(
     UID CHAR(6),
-    URL VARCHAR(200));''')
+    URL VARCHAR(400));''')
     
-if not(data) or 'products' not in data[0][0]:
+if not(data) or not(data[0][0]):
     curs.execute('''CREATE TABLE PRODUCTS(
     Timestamp DATETIME,
-    UID CHAR(6) PRIMARY KEY,
+    UID CHAR(6),
     Name VARCHAR(200),
     Price INT);''')
     #FOREIGN KEY (UID) REFERENCES URLS(UID)
@@ -125,12 +187,37 @@ for product_url in amazon_urls:
     timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
     product_name = get_amazon_name(main_dom).strip()
     print(product_name, price)
-    uid = gen_UID("Amazon")
-    print(len(product_name))
-    curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {})".format(timestamp, uid, product_name, price))
+    curs.execute("SELECT URL FROM URLS")
+    data = curs.fetchall()
+    if product_url in data:
+        curs.execute("SELECT UID FROM URLS WHERE URL = '{}'".format(product_url))
+        uid = curs.fetchall()[0][0]
+        curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {});".format(timestamp, uid, product_name, price))
+    else:
+        uid = gen_UID("Amazon")
+        curs.execute("INSERT INTO URLS VALUES ('{}','{}');".format(uid, product_url))
+        curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {});".format(timestamp, uid, product_name, price))
     mydb.commit()
 
 for product_url in flipkart_urls:
     get_flipkart_details(product_url)
+
+bt1 = Button(root, text="Edit URLs", command=onClickURL)
+bt1.pack()
+bt2 = Button(root, text='View Price Variations', command=onClickVary)
+bt2.pack()
+
+fig = Figure(figsize=(5, 5), dpi=100)
+y = [i**2 for i in range(101)]
+plot1 = fig.add_subplot(111)
+plot1.plot(y)
+
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.draw()
+canvas.get_tk_widget().pack()
+toolbar = NavigationToolbar2Tk(canvas, root)
+toolbar.update()
+canvas.get_tk_widget().pack()
+root.mainloop()
 
 mydb.close()
