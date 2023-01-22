@@ -226,9 +226,18 @@ def GUI():
     bt2.place(relx = 0.7, rely = 0.17)
 
     fig = Figure(figsize=(5, 5), dpi=100)
-    y = [i**2 for i in range(101)]
     plot1 = fig.add_subplot(111)
-    plot1.plot(y)
+    curs.execute('SELECT UID FROM Products;')
+    result = curs.fetchall
+    for i in curs:
+        curs.execute('SELECT Price FROM products WHERE UID = {i};')
+        res = curs.fetchall
+        y = [i for i in curs]
+        plot1.plot(y)
+    # curs.execute('SELECT Price FROM products WHERE UID = \'P2A\';')
+    # res = curs.fetchall
+    # z = [i for i in curs]
+    # plot1.plot(z)
 
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.draw()
@@ -243,7 +252,7 @@ def GUI():
 # data = f.read()
 # if not(data):
 #     mysqllogin(f)
-mydb = sqltor.connect(host="localhost", user="root", passwd="Root@604")
+mydb = sqltor.connect(host="localhost", user="root", passwd="NaveenRoot")
 curs = mydb.cursor()
 if mydb.is_connected():
     print("Connected")
@@ -280,19 +289,19 @@ data = curs.fetchall()
 amazon_urls = list(map(lambda x: x[0], data))
 print(amazon_urls)
 
-for product_url in amazon_urls:
-    response = requests.get(product_url, headers=header)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    main_dom = et.HTML(str(soup))
+# for product_url in amazon_urls:
+#     response = requests.get(product_url, headers=header)
+#     soup = BeautifulSoup(response.content, 'html.parser')
+#     main_dom = et.HTML(str(soup))
     
-    price = get_amazon_price(main_dom)
-    timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
-    product_name = get_amazon_name(main_dom).strip()
-    print(product_name, price)
-    curs.execute("SELECT UID FROM URLS WHERE URL = '{}'".format(product_url))
-    uid = curs.fetchall()[0][0]
-    curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {});".format(timestamp, uid, product_name, price))
-    mydb.commit()
+#     price = get_amazon_price(main_dom)
+#     timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
+#     product_name = get_amazon_name(main_dom).strip()
+#     print(product_name, price)
+#     curs.execute("SELECT UID FROM URLS WHERE URL = '{}'".format(product_url))
+#     uid = curs.fetchall()[0][0]
+#     curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {});".format(timestamp, uid, product_name, price))
+#     mydb.commit()
 
 curs.execute("SELECT URL FROM URLS WHERE UID LIKE '%F';")
 data = curs.fetchall()
