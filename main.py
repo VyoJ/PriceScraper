@@ -109,6 +109,7 @@ def onClickVary():
 
     w2.mainloop()
 
+
 def showTable(w2, name):
     '''
     Function to display the MySQL table storing products' names and prices along with the timestamp. 
@@ -127,6 +128,7 @@ def showTable(w2, name):
         tree.insert('', 'end', text = "1", values = i)
 
     tree.place(relx = 0.03, rely = 0.2)
+
 
 def gen_UID(website):
     '''
@@ -156,8 +158,7 @@ def get_amazon_name(dom):
         [name.strip() for name in name]
         return name[0]
     except Exception:
-        name = 'Not Available'
-        return None
+        return 'Not Available'
 
 
 def get_amazon_price(dom):
@@ -170,8 +171,7 @@ def get_amazon_price(dom):
         price = price.replace(',', '').replace('₹', '').replace('.00', '')
         return int(price)
     except Exception:
-        price = 'Not Available'
-        return None
+        return 'Not Available'
 
 
 def get_flipkart_details(product_url):
@@ -193,18 +193,33 @@ def get_flipkart_details(product_url):
     mydb.commit()
 
 
-# def mysqllogin(f):
-#     sqllogin = Tk()
-#     sqllogin.geometry("400x300")
-#     username = StringVar()
-#     username.set("Enter MySQL username")
-#     pwd = StringVar("Enter MySQL password")
-#     userentry = Entry(sqllogin, username)
-#     userentry.place(relx = 0.4, rely = 0.2)
-#     passentry = Entry(sqllogin, pwd)
-#     passentry.place(relx = 0.4, rely = 0.5)
-#     submit_btn = Button(sqllogin, text = "Submit", font = ("Arial 14"), relief = RIDGE, bd = 3, command = f.writelines([userentry.get(), passentry.get()]))
-#     submit_btn.place(relx = 0.42, rely = 0.8)
+def mysqllogin():
+    f = open("mysql_auth.txt", "a+")
+    f.seek(0)
+    data = f.read()
+    if not(data):
+        sqllogin = Tk()
+        sqllogin.title("MySQL Login")
+        sqllogin.geometry("400x300")
+        username = StringVar()
+        username.set("Enter MySQL username")
+        pwd = StringVar()
+        pwd.set("Enter MySQL password")
+        userentry = Entry(sqllogin, textvariable = username)
+        userentry.place(relx = 0.35, rely = 0.2)
+        passentry = Entry(sqllogin, textvariable = pwd)
+        passentry.place(relx = 0.35, rely = 0.5)
+        submit_btn = Button(sqllogin, text = "Submit", font = ("Arial 14"), relief = RIDGE, bd = 3, command = lambda: f.writelines([userentry.get()+"\n", passentry.get()]) or sqllogin.destroy())
+        submit_btn.place(relx = 0.42, rely = 0.8)
+        sqllogin.mainloop()
+    f.seek(0)
+    details = f.readlines()
+    f.close()
+    return details
+
+
+def graph():
+    pass
 
 
 def GUI():
@@ -225,34 +240,38 @@ def GUI():
     bt2 = Button(root, text='View Price Variations', font = ("Arial 14"), relief = RIDGE, bd = 3, command=onClickVary)
     bt2.place(relx = 0.7, rely = 0.17)
 
-    fig = Figure(figsize=(5, 5), dpi=100)
+    fig = Figure(figsize=(10, 5), dpi=100)
     plot1 = fig.add_subplot(111)
     curs.execute('SELECT UID FROM Products;')
-    result = curs.fetchall
-    for i in curs:
-        curs.execute('SELECT Price FROM products WHERE UID = {i};')
-        res = curs.fetchall
-        y = [i for i in curs]
-        plot1.plot(y)
-    # curs.execute('SELECT Price FROM products WHERE UID = \'P2A\';')
-    # res = curs.fetchall
-    # z = [i for i in curs]
-    # plot1.plot(z)
+    data = curs.fetchall()
+    uids = list(map(lambda x: x[0], data))
+    for i in uids:
+        curs.execute("SELECT Timestamp, Price FROM products WHERE UID = '{}';".format(i))
+        res = curs.fetchall()
+        x = [i[0] for i in res]
+        y = [i[1] for i in res]
+        plot1.scatter(x, y)
 
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.draw()
-    canvas.get_tk_widget().place(relx = 0.3, rely = 0.25)
+    canvas.get_tk_widget().place(relx = 0.1, rely = 0.25)
     toolbar = NavigationToolbar2Tk(canvas, root)
     toolbar.update()
+
     root.mainloop()
 
 
 #main
-# f = open("mysql_auth.txt", "a+")
-# data = f.read()
-# if not(data):
-#     mysqllogin(f)
-mydb = sqltor.connect(host="localhost", user="root", passwd="NaveenRoot")
+while True:
+    details = mysqllogin()
+    try:
+        mydb = sqltor.connect(host="localhost", user=details[0].strip(), passwd=details[1].strip())
+    except:
+        with open("mysql_auth.txt", "w") as f:
+            pass
+        continue
+    break
+    
 curs = mydb.cursor()
 if mydb.is_connected():
     print("Connected")
@@ -275,7 +294,6 @@ if not(data) or not(data[0][0]):
     UID CHAR(6),
     Name VARCHAR(200),
     Price INT);''')
-    #FOREIGN KEY (UID) REFERENCES URLS(UID)
 
 header = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36",
@@ -289,19 +307,19 @@ data = curs.fetchall()
 amazon_urls = list(map(lambda x: x[0], data))
 print(amazon_urls)
 
-# for product_url in amazon_urls:
-#     response = requests.get(product_url, headers=header)
-#     soup = BeautifulSoup(response.content, 'html.parser')
-#     main_dom = et.HTML(str(soup))
+for product_url in amazon_urls:
+    response = requests.get(product_url, headers=header)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    main_dom = et.HTML(str(soup))
     
-#     price = get_amazon_price(main_dom)
-#     timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
-#     product_name = get_amazon_name(main_dom).strip()
-#     print(product_name, price)
-#     curs.execute("SELECT UID FROM URLS WHERE URL = '{}'".format(product_url))
-#     uid = curs.fetchall()[0][0]
-#     curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {});".format(timestamp, uid, product_name, price))
-#     mydb.commit()
+    price = get_amazon_price(main_dom)
+    timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
+    product_name = get_amazon_name(main_dom).strip()
+    print(product_name, price)
+    curs.execute("SELECT UID FROM URLS WHERE URL = '{}'".format(product_url))
+    uid = curs.fetchall()[0][0]
+    curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {});".format(timestamp, uid, product_name, price))
+    mydb.commit()
 
 curs.execute("SELECT URL FROM URLS WHERE UID LIKE '%F';")
 data = curs.fetchall()
