@@ -306,35 +306,35 @@ header = {
     'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
 }
 
-# curs.execute("SELECT URL FROM URLS WHERE UID LIKE '%A';")
-# data = curs.fetchall()
-# amazon_urls = list(map(lambda x: x[0], data))
-# print(amazon_urls)
+curs.execute("SELECT URL FROM URLS WHERE UID LIKE '%A';")
+data = curs.fetchall()
+amazon_urls = list(map(lambda x: x[0], data))
+print(amazon_urls)
 
-# for product_url in amazon_urls:
-#     response = requests.get(product_url, headers=header)
-#     soup = BeautifulSoup(response.content, 'html.parser')
-#     main_dom = et.HTML(str(soup))
+for product_url in amazon_urls:
+    response = requests.get(product_url, headers=header)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    main_dom = et.HTML(str(soup))
     
-#     price = get_amazon_price(main_dom)
-#     timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
-#     if not(price):
-#         messagebox.showwarning("Warning", "URL could not be reached right now. Please try again later.")
-#         break
-#     product_name = get_amazon_name(main_dom).strip()
-#     print(product_name, price)
-#     curs.execute("SELECT UID FROM URLS WHERE URL = '{}'".format(product_url))
-#     uid = curs.fetchall()[0][0]
-#     curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {});".format(timestamp, uid, product_name, price))
-#     mydb.commit()
+    price = get_amazon_price(main_dom)
+    timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
+    if not(price):
+        messagebox.showwarning("Warning", "URL could not be reached right now. Please try again later.")
+        break
+    product_name = get_amazon_name(main_dom).strip()
+    print(product_name, price)
+    curs.execute("SELECT UID FROM URLS WHERE URL = '{}'".format(product_url))
+    uid = curs.fetchall()[0][0]
+    curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {});".format(timestamp, uid, product_name, price))
+    mydb.commit()
 
-# curs.execute("SELECT URL FROM URLS WHERE UID LIKE '%F';")
-# data = curs.fetchall()
-# flipkart_urls = list(map(lambda x: x[0], data))
-# print(flipkart_urls)
+curs.execute("SELECT URL FROM URLS WHERE UID LIKE '%F';")
+data = curs.fetchall()
+flipkart_urls = list(map(lambda x: x[0], data))
+print(flipkart_urls)
 
-# for product_url in flipkart_urls:
-#     get_flipkart_details(product_url)
+for product_url in flipkart_urls:
+    get_flipkart_details(product_url)
 
 GUI()
 
