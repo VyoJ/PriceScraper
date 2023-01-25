@@ -6,7 +6,7 @@ import mysql.connector as sqltor
 from datetime import datetime as dt
 from tkinter import *
 from tkinter import messagebox
-from tkinter import ttk
+import tkinter.ttk as ttk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 
@@ -96,14 +96,14 @@ def onClickVary():
     w2.title('Price Variations')
     w2.geometry("1280x500")
 
-    style = ttk.Style()
-    style.theme_use('alt')
+    style = ttk.Style(w2)
+    style.theme_use('clam')
 
-    menu = StringVar()
-    menu.set("Select Any Product")
     curs.execute("SELECT DISTINCT Name FROM Products;")
     data = curs.fetchall()
     options = list(map(lambda x: x[0], data))
+    menu = StringVar(w2)
+    menu.set("Select Any Product")
     drop = OptionMenu(w2, menu, *options, command = lambda x: showTable(w2, menu.get()))
     drop.place(relx = 0.4, rely = 0.05)
 
@@ -126,7 +126,6 @@ def showTable(w2, name):
     data = curs.fetchall()
     for i in data:
         tree.insert('', 'end', text = "1", values = i)
-
     tree.place(relx = 0.03, rely = 0.2)
 
 
@@ -158,7 +157,7 @@ def get_amazon_name(dom):
         [name.strip() for name in name]
         return name[0]
     except Exception:
-        return 'Not Available'
+        return None
 
 
 def get_amazon_price(dom):
@@ -171,7 +170,7 @@ def get_amazon_price(dom):
         price = price.replace(',', '').replace('₹', '').replace('.00', '')
         return int(price)
     except Exception:
-        return 'Not Available'
+        return None
 
 
 def get_flipkart_details(product_url):
@@ -218,10 +217,6 @@ def mysqllogin():
     return details
 
 
-def graph():
-    pass
-
-
 def GUI():
     '''
     Function to start the GUI of the program. 
@@ -232,6 +227,20 @@ def GUI():
     root.geometry('1280x720')
     root.config(bg = "#FFFFFF")
 
+    def graph(name, fig, canvas):
+        plot1 = fig.add_subplot(111)
+        curs.execute('SELECT UID FROM Products WHERE Name = "{}";'.format(name))
+        data = curs.fetchall()
+        uid = data[0][0]
+        curs.execute("SELECT Timestamp, Price FROM products WHERE UID = '{}';".format(uid))
+        res = curs.fetchall()
+        x = [i[0] for i in res]
+        y = [i[1] for i in res]
+        plot1.scatter(x, y)
+        canvas.draw()
+        canvas.get_tk_widget().place(relx = 0.1, rely = 0.25)
+        fig.delaxes(plot1)
+
     TLabel = Label(root, bg = "#000000", fg = "#ffe24b", anchor = "center", text = "Welcome to Price Tracker", font = ("Arial 20 bold"), padx = 5, pady = 5, relief = SUNKEN, bd = 5)
     TLabel.place(relx = 0.35, rely = 0.05)
 
@@ -241,20 +250,16 @@ def GUI():
     bt2.place(relx = 0.7, rely = 0.17)
 
     fig = Figure(figsize=(10, 5), dpi=100)
-    plot1 = fig.add_subplot(111)
-    curs.execute('SELECT UID FROM Products;')
-    data = curs.fetchall()
-    uids = list(map(lambda x: x[0], data))
-    for i in uids:
-        curs.execute("SELECT Timestamp, Price FROM products WHERE UID = '{}';".format(i))
-        res = curs.fetchall()
-        x = [i[0] for i in res]
-        y = [i[1] for i in res]
-        plot1.scatter(x, y)
-
     canvas = FigureCanvasTkAgg(fig, master=root)
-    canvas.draw()
-    canvas.get_tk_widget().place(relx = 0.1, rely = 0.25)
+    curs.execute("SELECT DISTINCT Name FROM Products;")
+    data = curs.fetchall()
+    options = list(map(lambda x: x[0], data))
+
+    menu = StringVar(root)
+    menu.set("Select Any Product")
+    drop = OptionMenu(root, menu, *options, command = lambda x: graph(menu.get(), fig, canvas))
+    drop.place(relx = 0.4, rely = 0.2)
+    
     toolbar = NavigationToolbar2Tk(canvas, root)
     toolbar.update()
 
@@ -280,7 +285,6 @@ curs.execute("CREATE DATABASE IF NOT EXISTS PRICETRACKER;")
 curs.execute("USE PRICETRACKER;")
 curs.execute("SHOW TABLES;")
 data = curs.fetchall()
-print(data)
 
 if not(data) or not(data[1][0]):
     curs.execute('''CREATE TABLE URLS(
@@ -302,32 +306,35 @@ header = {
     'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
 }
 
-curs.execute("SELECT URL FROM URLS WHERE UID LIKE '%A';")
-data = curs.fetchall()
-amazon_urls = list(map(lambda x: x[0], data))
-print(amazon_urls)
+# curs.execute("SELECT URL FROM URLS WHERE UID LIKE '%A';")
+# data = curs.fetchall()
+# amazon_urls = list(map(lambda x: x[0], data))
+# print(amazon_urls)
 
-for product_url in amazon_urls:
-    response = requests.get(product_url, headers=header)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    main_dom = et.HTML(str(soup))
+# for product_url in amazon_urls:
+#     response = requests.get(product_url, headers=header)
+#     soup = BeautifulSoup(response.content, 'html.parser')
+#     main_dom = et.HTML(str(soup))
     
-    price = get_amazon_price(main_dom)
-    timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
-    product_name = get_amazon_name(main_dom).strip()
-    print(product_name, price)
-    curs.execute("SELECT UID FROM URLS WHERE URL = '{}'".format(product_url))
-    uid = curs.fetchall()[0][0]
-    curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {});".format(timestamp, uid, product_name, price))
-    mydb.commit()
+#     price = get_amazon_price(main_dom)
+#     timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
+#     if not(price):
+#         messagebox.showwarning("Warning", "URL could not be reached right now. Please try again later.")
+#         break
+#     product_name = get_amazon_name(main_dom).strip()
+#     print(product_name, price)
+#     curs.execute("SELECT UID FROM URLS WHERE URL = '{}'".format(product_url))
+#     uid = curs.fetchall()[0][0]
+#     curs.execute("INSERT INTO Products VALUES ('{}', '{}', '{}', {});".format(timestamp, uid, product_name, price))
+#     mydb.commit()
 
-curs.execute("SELECT URL FROM URLS WHERE UID LIKE '%F';")
-data = curs.fetchall()
-flipkart_urls = list(map(lambda x: x[0], data))
-print(flipkart_urls)
+# curs.execute("SELECT URL FROM URLS WHERE UID LIKE '%F';")
+# data = curs.fetchall()
+# flipkart_urls = list(map(lambda x: x[0], data))
+# print(flipkart_urls)
 
-for product_url in flipkart_urls:
-    get_flipkart_details(product_url)
+# for product_url in flipkart_urls:
+#     get_flipkart_details(product_url)
 
 GUI()
 
